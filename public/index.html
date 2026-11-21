@@ -15,7 +15,7 @@
   <header class="site-header">
     <div class="container header-inner">
       <h1 class="logo">مولّد الإعلانات</h1>
-      <span class="badge">نسخة 1.0</span>
+      <span class="badge">نسخة 2.0 🎬</span>
     </div>
   </header>
 
@@ -67,7 +67,11 @@
           </div>
         </div>
 
-        <button type="button" id="generateBtn" class="btn btn-primary" disabled>توليد الإعلان</button>
+        <!-- الأزرار الجديدة -->
+        <div class="button-group">
+          <button type="button" id="generateBtn" class="btn btn-primary" disabled>🖼️ توليد الإعلان (صورة)</button>
+          <button type="button" id="generateVideoBtn" class="btn btn-video" disabled>🎬 توليد فيديو</button>
+        </div>
         <p id="formError" class="error" role="alert" hidden></p>
       </section>
 
@@ -86,7 +90,7 @@
 
           <div id="loadingState" class="loading-state" hidden>
             <div class="spinner" aria-hidden="true"></div>
-            <p>عم نجهز إعلانك... ممكن ياخد دقيقة تقريباً</p>
+            <p id="loadingText">عم نجهز إعلانك... ممكن ياخد دقيقة تقريباً</p>
           </div>
 
           <div id="resultState" class="result-state" hidden>
@@ -94,6 +98,15 @@
             <div class="result-actions">
               <a id="downloadBtn" class="btn btn-primary" download="product-ad.png">تحميل الإعلان</a>
               <button type="button" id="regenerateBtn" class="btn btn-ghost">توليد نسخة جديدة</button>
+            </div>
+          </div>
+
+          <!-- قسم عرض الفيديو الجديد -->
+          <div id="videoResultState" class="result-state" hidden>
+            <video id="resultVideo" controls autoplay loop muted playsinline></video>
+            <div class="result-actions">
+              <a id="downloadVideoBtn" class="btn btn-video" download="product-ad.mp4">⬇️ تحميل الفيديو</a>
+              <button type="button" id="regenerateVideoBtn" class="btn btn-ghost">توليد فيديو جديد</button>
             </div>
           </div>
 
@@ -106,7 +119,7 @@
     </div>
 
     <footer class="site-footer">
-      <p>مبني بـ Node.js + Express + OpenAI-compatible API — الكود كامل على GitHub</p>
+      <p>مبني بـ Node.js + Express + OpenAI + Stability AI — الكود كامل على GitHub</p>
     </footer>
   </main>
 
