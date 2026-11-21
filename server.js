@@ -38,7 +38,14 @@ app.post("/api/generate", upload.single("image"), async (req, res) => {
     const [width, height] = size.split("x").map(Number);
     const base64 = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
 
-    const fullPrompt = buildAdPrompt(prompt);
+    const fullPrompt = [
+      "Professional advertising image of this product.",
+      "Studio-quality commercial photography.",
+      "Premium look suitable for social media.",
+      "User request:",
+      prompt,
+    ].join(" ");
+
     const encodedPrompt = encodeURIComponent(fullPrompt);
     const url = `https://image.pollinations.ai/prompt/${encodedPrompt}`;
 
@@ -127,16 +134,6 @@ app.get("/api/video-result/:id", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
-function buildAdPrompt(userPrompt) {
-  return [
-    "Professional advertising image of this product.",
-    "Studio-quality commercial photography.",
-    "Premium look suitable for social media.",
-    "User request:",
-    userPrompt,
-  ].join(" ");
-}
 
 app.listen(PORT, () => {
   console.log(`✅ Product Ad Generator running: http://localhost:${PORT}`);
