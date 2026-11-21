@@ -1,84 +1,78 @@
 import "dotenv/config";
 import express from "express";
 import multer from "multer";
-import OpenAI from "openai";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
 const app = express();
 const PORT = process.env.PORT || 3000;
-
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || "sk-missing",
-  baseURL: process.env.OPENAI_BASE_URL || "https://api.openai.com/v1",
-});
-
-const IMAGE_MODEL = process.env.IMAGE_MODEL || "dall-e-3";
 
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    if (/^image\/(png|jpe?g|webp|gif)$/.test(file.mimetype)) cb(null, true);
-    else cb(new Error("Only PNG, JPG, WEBP or GIF images are allowed"));
+    if (/^image\/(png|jpe?g|webp)$/.test(file.mimetype)) cb(null, true);
+    else cb(new Error("Only PNG, JPG, WEBP images are allowed"));
   },
 });
 
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
 app.get("/api/health", (req, res) => {
-  res.json({
-    ok: true,
-    model: IMAGE_MODEL,
-    hasKey: Boolean(process.env.OPENAI_API_KEY) && process.env.OPENAI_API_KEY !== "sk-missing"
-  });
+  res.json({ ok: true, model: "flux-kontext (Pollinations)", hasKey: true });
 });
 
 app.post("/api/generate", upload.single("image"), async (req, res) => {
   try {
-    const { prompt, size = "1024x1024", quality = "high" } = req.body;
+    const { prompt, size = "1024x1024" } = req.body;
 
-    if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === "sk-missing") {
-      return res.status(500).json({ error: "OPENAI_API_KEY is not configured on the server." });
-    }
     if (!req.file) {
       return res.status(400).json({ error: "Please upload a product image." });
     }
     if (!prompt || !prompt.trim()) {
-      return res.status(400).json({ error: "Please write a prompt describing the ad you want." });
+      return res.status(400).json({ error: "Please write a prompt." });
     }
 
-    const ext = req.file.mimetype.split("/")[1].replace("jpeg", "jpg");
-    const imageFile = new File([req.file.buffer], `product.${ext}`, { type: req.file.mimetype });
+    const [width, height] = size.split("x").map(Number);
+    const base64 = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
 
-    const result = await client.images.edit({
-      model: IMAGE_MODEL,
-      image: imageFile,
-      prompt: buildAdPrompt(prompt),
-      size,
-      quality,
-      n: 1,
+    const fullPrompt = buildAdPrompt(prompt);
+    const encodedPrompt = encodeURIComponent(fullPrompt);
+    const url = `https://image.pollinations.ai/prompt/${encodedPrompt}`;
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "flux-kontext",
+        image: base64,
+        width: width || 1024,
+        height: height || 1024,
+        nologo: true,
+        private: true,
+      }),
     });
 
-    const b64 = result.data?.[0]?.b64_json;
-    if (!b64) {
-      return res.status(502).json({ error: "The image API returned no image." });
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`Pollinations error (${response.status}): ${text.slice(0, 200)}`);
     }
 
-    res.json({ image: `data:image/png;base64,${b64}` });
+    const buffer = await response.arrayBuffer();
+    const b64 = Buffer.from(buffer).toString("base64");
+    res.json({ image: `data:image/jpeg;base64,${b64}` });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: err?.error?.message || err?.message || "Unexpected server error" });
+    res.status(500).json({ error: err.message });
   }
 });
 
 app.post("/api/generate-video", upload.single("image"), async (req, res) => {
   try {
     if (!process.env.STABILITY_API_KEY) {
-      return res.status(500).json({ error: "STABILITY_API_KEY is not configured. Add it in Render Environment Variables." });
+      return res.status(500).json({ error: "STABILITY_API_KEY is not configured." });
     }
     if (!req.file) {
       return res.status(400).json({ error: "Please upload an image." });
@@ -136,16 +130,12 @@ app.get("/api/video-result/:id", async (req, res) => {
 
 function buildAdPrompt(userPrompt) {
   return [
-    "Create a professional, high-end advertising image for this product.",
-    "Requirements:",
-    "- Keep the product from the reference image as the clear hero of the composition.",
-    "- Studio-quality commercial photography style.",
-    "- Modern, premium look suitable for social media.",
-    "- No watermarks, no distorted text.",
-    "",
-    "User's request:",
+    "Professional advertising image of this product.",
+    "Studio-quality commercial photography.",
+    "Premium look suitable for social media.",
+    "User request:",
     userPrompt,
-  ].join("\n");
+  ].join(" ");
 }
 
 app.listen(PORT, () => {
