@@ -1,7 +1,7 @@
 {
   "name": "product-ad-generator",
   "version": "1.0.0",
-  "description": "Upload a product photo + prompt, get a professional ad image (Arabic RTL UI, OpenAI-compatible image edit API).",
+  "description": "Upload a product photo + prompt, get a professional ad image or video.",
   "main": "server.js",
   "type": "module",
   "scripts": {
