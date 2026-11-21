@@ -99,7 +99,40 @@ function buildAdPrompt(userPrompt) {
     userPrompt,
   ].join("\n");
 }
+// توليد فيديو من صورة
+app.post("/api/generate-video", upload.single("image"), async (req, res) => {
+  try {
+    if (!process.env.REPLICATE_API_TOKEN) {
+      return res.status(500).json({ error: "REPLICATE_API_TOKEN is not configured." });
+    }
+    if (!req.file) {
+      return res.status(400).json({ error: "Please upload an image." });
+    }
 
+    // تحويل الصورة إلى base64
+    const base64Image = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+
+    // استخدام نموذج Stable Video Diffusion
+    const output = await replicate.run(
+      "stability-ai/stable-video-diffusion:3f0457e4619daac51203dedb472816fd4af51f3149fa7a9e0b5ffcf1b8172438",
+      {
+        input: {
+          input_image: base64Image,
+          video_length: "25_frames_with_svd_xt",
+          sizing_strategy: "maintain_aspect_ratio",
+          frames_per_second: 6,
+          motion_bucket_id: 127,
+          cond_aug: 0.02
+        }
+      }
+    );
+
+    res.json({ video: output });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
 app.listen(PORT, () => {
   console.log(`✅ Product Ad Generator running: http://localhost:${PORT}`);
 });
