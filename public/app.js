@@ -124,3 +124,64 @@ async function generate() {
     validate();
   }
 }
+// === ميزة توليد الفيديو ===
+const generateVideoBtn = document.getElementById('generateVideoBtn');
+const videoResult = document.createElement('div');
+videoResult.id = 'videoResult';
+document.querySelector('.container').appendChild(videoResult);
+
+generateVideoBtn.addEventListener('click', async () => {
+  const imageInput = document.getElementById('imageInput');
+  const promptInput = document.getElementById('promptInput');
+  
+  if (!imageInput.files[0]) {
+    alert('الرجاء رفع صورة المنتج أولاً');
+    return;
+  }
+  
+  if (!promptInput.value.trim()) {
+    alert('الرجاء كتابة وصف الإعلان');
+    return;
+  }
+  
+  // عرض رسالة التحميل
+  videoResult.innerHTML = '<p class="loading-video">🎬 جاري توليد الفيديو... قد يستغرق 30-60 ثانية</p>';
+  generateVideoBtn.disabled = true;
+  generateVideoBtn.textContent = 'جاري التوليد...';
+  
+  try {
+    const formData = new FormData();
+    formData.append('image', imageInput.files[0]);
+    formData.append('prompt', promptInput.value);
+    
+    const response = await fetch('/api/generate-video', {
+      method: 'POST',
+      body: formData
+    });
+    
+    const data = await response.json();
+    
+    if (data.error) {
+      throw new Error(data.error);
+    }
+    
+    // عرض الفيديو
+    if (data.video) {
+      videoResult.innerHTML = `
+        <h3>🎥 الفيديو الناتج:</h3>
+        <video controls autoplay loop>
+          <source src="${data.video}" type="video/mp4">
+          متصفحك لا يدعم تشغيل الفيديو
+        </video>
+        <br>
+        <a href="${data.video}" download="ad-video.mp4" class="download-btn">⬇️ تحميل الفيديو</a>
+      `;
+    }
+    
+  } catch (error) {
+    videoResult.innerHTML = `<p style="color: red;">❌ خطأ: ${error.message}</p>`;
+  } finally {
+    generateVideoBtn.disabled = false;
+    generateVideoBtn.textContent = 'توليد فيديو';
+  }
+});
